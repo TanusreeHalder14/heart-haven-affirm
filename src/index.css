@@ -2,41 +2,79 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* HeartSpace - Emotional Wellbeing Design System
+All colors are HSL for perfect harmony and accessibility
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Base colors - Soft, calming foundation */
+    --background: 320 30% 98%;
+    --foreground: 240 15% 25%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Card colors - Gentle elevation */
+    --card: 315 25% 96%;
+    --card-foreground: 240 15% 25%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Popover colors */
+    --popover: 315 25% 96%;
+    --popover-foreground: 240 15% 25%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Healing rose gold */
+    --primary: 345 65% 70%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 345 80% 85%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Soft lavender */
+    --secondary: 270 35% 88%;
+    --secondary-foreground: 240 15% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted - Gentle neutral */
+    --muted: 320 20% 94%;
+    --muted-foreground: 240 10% 55%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Peaceful mint */
+    --accent: 160 40% 85%;
+    --accent-foreground: 240 15% 25%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Wellness colors */
+    --wellness: 160 50% 75%;
+    --wellness-foreground: 0 0% 100%;
+    
+    /* Calm colors */
+    --calm: 220 40% 80%;
+    --calm-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Joy colors */
+    --joy: 50 85% 80%;
+    --joy-foreground: 240 15% 25%;
 
-    --radius: 0.5rem;
+    /* Destructive - Soft warning */
+    --destructive: 15 75% 70%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders and inputs - Barely there */
+    --border: 320 25% 90%;
+    --input: 320 25% 92%;
+    --ring: 345 65% 70%;
+
+    /* Radius for soft, rounded feel */
+    --radius: 1rem;
+
+    /* Gradients for depth and beauty */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-wellness: linear-gradient(135deg, hsl(var(--wellness)), hsl(var(--accent)));
+    --gradient-calm: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary) / 0.1), hsl(var(--accent) / 0.1));
+
+    /* Shadows for gentle elevation */
+    --shadow-soft: 0 4px 20px hsl(var(--primary) / 0.1);
+    --shadow-medium: 0 8px 30px hsl(var(--primary) / 0.15);
+    --shadow-glow: 0 0 40px hsl(var(--primary-glow) / 0.3);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --sidebar-background: 0 0% 98%;
 
@@ -101,5 +139,87 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+}
+
+@layer components {
+  /* Healing button variants */
+  .btn-healing {
+    @apply bg-gradient-to-r from-primary to-primary-glow text-primary-foreground;
+    @apply shadow-soft hover:shadow-medium transition-all duration-300;
+    @apply rounded-2xl px-6 py-3 font-medium;
+  }
+  
+  .btn-wellness {
+    @apply bg-gradient-to-r from-wellness to-accent text-wellness-foreground;
+    @apply shadow-soft hover:shadow-medium transition-all duration-300;
+    @apply rounded-2xl px-6 py-3 font-medium;
+  }
+  
+  .btn-calm {
+    @apply bg-calm text-calm-foreground;
+    @apply shadow-soft hover:shadow-medium transition-all duration-300;
+    @apply rounded-2xl px-6 py-3 font-medium;
+  }
+
+  /* Card styles */
+  .card-gentle {
+    @apply bg-card border border-border rounded-3xl p-6;
+    @apply shadow-soft hover:shadow-medium transition-all duration-300;
+  }
+
+  .card-floating {
+    @apply bg-gradient-to-br from-card via-background to-muted;
+    @apply border border-border/50 rounded-3xl p-6;
+    @apply shadow-medium hover:shadow-glow transition-all duration-500;
+  }
+
+  /* Text animations */
+  .text-glow {
+    @apply bg-gradient-to-r from-primary via-wellness to-accent bg-clip-text text-transparent;
+  }
+
+  /* Mood emoji styles */
+  .mood-emoji {
+    @apply text-4xl p-4 rounded-2xl transition-all duration-300;
+    @apply hover:scale-110 hover:shadow-medium cursor-pointer;
+  }
+
+  .mood-happy { @apply bg-joy/20 hover:bg-joy/30; }
+  .mood-neutral { @apply bg-muted hover:bg-muted/80; }
+  .mood-sad { @apply bg-calm/20 hover:bg-calm/30; }
+  .mood-anxious { @apply bg-destructive/20 hover:bg-destructive/30; }
+  .mood-excited { @apply bg-wellness/20 hover:bg-wellness/30; }
+
+  /* Fade animations */
+  .fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+
+  .slide-up {
+    animation: slideUp 0.6s ease-out forwards;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

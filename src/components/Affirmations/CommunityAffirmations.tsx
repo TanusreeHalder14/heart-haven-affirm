@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Affirmation } from '@/types';
 import { Heart, Plus, MessageCircle, RefreshCw, User, UserX } from 'lucide-react';
 
@@ -63,33 +64,35 @@ export const CommunityAffirmations: React.FC = () => {
   ];
 
   useEffect(() => {
-    // Load affirmations from localStorage or use mock data
-    const stored = localStorage.getItem('community_affirmations');
-    if (stored) {
-      setAffirmations(JSON.parse(stored));
-    } else {
+    fetchAffirmations();
+  }, []);
+
+  const fetchAffirmations = async () => {
+    const { data, error } = await supabase
+      .from('affirmations')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching affirmations:', error);
+      // Use mock data as fallback
       setAffirmations(mockAffirmations);
-      localStorage.setItem('community_affirmations', JSON.stringify(mockAffirmations));
+      return;
     }
-
-    // Load liked affirmations
-    const likedStored = localStorage.getItem(`liked_affirmations_${user?.id}`);
-    if (likedStored) {
-      setLikedAffirmations(new Set(JSON.parse(likedStored)));
-    }
-  }, [user?.id]);
-
-  const saveAffirmations = (newAffirmations: Affirmation[]) => {
-    localStorage.setItem('community_affirmations', JSON.stringify(newAffirmations));
-    setAffirmations(newAffirmations);
+    
+    const formattedAffirmations: Affirmation[] = data.map((affirmation: any) => ({
+      id: affirmation.id,
+      content: affirmation.content,
+      author: 'Community Member', // Simplified for now
+      isAnonymous: true, // Default to anonymous for now
+      likes: 0, // Likes feature can be added later
+      date: affirmation.created_at
+    }));
+    
+    setAffirmations(formattedAffirmations);
   };
 
-  const saveLikedAffirmations = (liked: Set<string>) => {
-    localStorage.setItem(`liked_affirmations_${user?.id}`, JSON.stringify([...liked]));
-    setLikedAffirmations(liked);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newAffirmation.trim()) {
@@ -101,25 +104,45 @@ export const CommunityAffirmations: React.FC = () => {
       return;
     }
 
-    const affirmation: Affirmation = {
-      id: Date.now().toString(),
-      content: newAffirmation.trim(),
-      author: isAnonymous ? null : user?.name || 'Anonymous',
-      isAnonymous,
-      likes: 0,
-      date: new Date().toISOString()
-    };
+    if (!user?.id) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to share affirmations",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    const updatedAffirmations = [affirmation, ...affirmations];
-    saveAffirmations(updatedAffirmations);
+    try {
+      const { error } = await supabase
+        .from('affirmations')
+        .insert({
+          user_id: user.id,
+          content: newAffirmation.trim()
+        });
 
-    setNewAffirmation('');
-    setIsAnonymous(false);
+      if (error) {
+        throw error;
+      }
 
-    toast({
-      title: "Affirmation shared! 🌟",
-      description: "Thank you for spreading positivity"
-    });
+      // Refresh affirmations after successful insert
+      await fetchAffirmations();
+
+      setNewAffirmation('');
+      setIsAnonymous(false);
+
+      toast({
+        title: "Affirmation shared! 🌟",
+        description: "Thank you for spreading positivity"
+      });
+    } catch (error) {
+      console.error('Error saving affirmation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to share affirmation. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleLike = (affirmationId: string) => {
@@ -139,8 +162,8 @@ export const CommunityAffirmations: React.FC = () => {
       affirmationsCopy[affirmationIndex].likes++;
     }
 
-    saveLikedAffirmations(newLiked);
-    saveAffirmations(affirmationsCopy);
+    setLikedAffirmations(newLiked);
+    setAffirmations(affirmationsCopy);
   };
 
   const shuffleAffirmations = () => {

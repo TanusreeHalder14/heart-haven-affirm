@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { MoodEntry } from '@/types';
 import { TrendingUp, Calendar, BarChart3 } from 'lucide-react';
 
@@ -25,21 +26,62 @@ export const MoodTracker: React.FC = () => {
   ];
 
   useEffect(() => {
-    const stored = localStorage.getItem(`mood_entries_${user?.id}`);
-    if (stored) {
-      setEntries(JSON.parse(stored));
+    if (user?.id) {
+      fetchMoodEntries();
     }
   }, [user?.id]);
 
-  const saveEntries = (newEntries: MoodEntry[]) => {
-    localStorage.setItem(`mood_entries_${user?.id}`, JSON.stringify(newEntries));
-    setEntries(newEntries);
+  const fetchMoodEntries = async () => {
+    if (!user?.id) return;
+    
+    const { data, error } = await supabase
+      .from('mood_entries')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching mood entries:', error);
+      return;
+    }
+    
+    const formattedEntries: MoodEntry[] = data.map((entry: any) => ({
+      id: entry.id,
+      mood: mapMoodScore(entry.mood_score),
+      note: entry.notes || '',
+      date: entry.created_at,
+      userId: entry.user_id
+    }));
+    
+    setEntries(formattedEntries);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const mapMoodScore = (score: number): 'Happy' | 'Neutral' | 'Sad' | 'Anxious' | 'Excited' => {
+    const moodMap = {
+      1: 'Sad' as const,
+      2: 'Anxious' as const, 
+      3: 'Neutral' as const,
+      4: 'Happy' as const,
+      5: 'Excited' as const
+    };
+    return moodMap[score as keyof typeof moodMap] || 'Neutral';
+  };
+
+  const getMoodScore = (mood: string): number => {
+    const scoreMap = {
+      'Sad': 1,
+      'Anxious': 2,
+      'Neutral': 3,
+      'Happy': 4,
+      'Excited': 5
+    };
+    return scoreMap[mood as keyof typeof scoreMap] || 3;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedMood) {
+    if (!selectedMood || !user?.id) {
       toast({
         title: "Please select a mood",
         description: "How are you feeling right now?",
@@ -63,24 +105,37 @@ export const MoodTracker: React.FC = () => {
       return;
     }
 
-    const entry: MoodEntry = {
-      id: Date.now().toString(),
-      mood: selectedMood as any,
-      note: note.trim(),
-      date: new Date().toISOString(),
-      userId: user?.id || ''
-    };
+    try {
+      const { error } = await supabase
+        .from('mood_entries')
+        .insert({
+          user_id: user.id,
+          mood_score: getMoodScore(selectedMood),
+          notes: note.trim() || null
+        });
 
-    const updatedEntries = [entry, ...entries];
-    saveEntries(updatedEntries);
+      if (error) {
+        throw error;
+      }
 
-    setSelectedMood('');
-    setNote('');
+      // Refresh entries after successful insert
+      await fetchMoodEntries();
 
-    toast({
-      title: "Mood tracked! 📊",
-      description: "Thank you for checking in with yourself"
-    });
+      setSelectedMood('');
+      setNote('');
+
+      toast({
+        title: "Mood tracked! 📊",
+        description: "Thank you for checking in with yourself"
+      });
+    } catch (error) {
+      console.error('Error saving mood entry:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save mood entry. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getMoodStats = () => {

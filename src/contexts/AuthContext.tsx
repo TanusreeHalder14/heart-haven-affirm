@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { User, AuthContextType } from '@/types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -13,34 +15,74 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem('heartspace_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        if (session?.user) {
+          // Fetch user profile from our profiles table
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single();
+          
+          if (profile) {
+            setUser({
+              id: profile.user_id,
+              email: profile.email,
+              name: profile.display_name || profile.email
+            });
+          }
+        } else {
+          setUser(null);
+        }
+        setIsLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        // Handle existing session
+        setSession(session);
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            if (profile) {
+              setUser({
+                id: profile.user_id,
+                email: profile.email,
+                name: profile.display_name || profile.email
+              });
+            }
+            setIsLoading(false);
+          });
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       
-      // Mock validation - in real app, this would be server-side
-      if (email && password.length >= 6) {
-        const mockUser: User = {
-          id: '1',
-          email,
-          name: email.split('@')[0]
-        };
-        setUser(mockUser);
-        localStorage.setItem('heartspace_user', JSON.stringify(mockUser));
-      } else {
-        throw new Error('Invalid credentials');
+      if (error) {
+        throw error;
       }
     } catch (error) {
       throw error;
@@ -52,19 +94,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const redirectUrl = `${window.location.origin}/`;
       
-      if (name && email && password.length >= 6) {
-        const mockUser: User = {
-          id: Date.now().toString(),
-          email,
-          name
-        };
-        setUser(mockUser);
-        localStorage.setItem('heartspace_user', JSON.stringify(mockUser));
-      } else {
-        throw new Error('Please fill all fields correctly');
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            display_name: name,
+          }
+        }
+      });
+      
+      if (error) {
+        throw error;
       }
     } catch (error) {
       throw error;
@@ -73,9 +117,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('heartspace_user');
+  const logout = async () => {
+    await supabase.auth.signOut();
   };
 
   const value: AuthContextType = {

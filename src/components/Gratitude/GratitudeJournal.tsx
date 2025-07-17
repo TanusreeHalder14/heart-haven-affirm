@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { GratitudeEntry } from '@/types';
 import { Heart, Plus, Calendar, Tag, Smile } from 'lucide-react';
 
@@ -23,19 +24,38 @@ export const GratitudeJournal: React.FC = () => {
   const emojis = ['💖', '🌟', '🌈', '🙏', '☀️', '🌸', '✨', '🎉'];
 
   useEffect(() => {
-    // Load entries from localStorage
-    const stored = localStorage.getItem(`gratitude_entries_${user?.id}`);
-    if (stored) {
-      setEntries(JSON.parse(stored));
+    if (user?.id) {
+      fetchGratitudeEntries();
     }
   }, [user?.id]);
 
-  const saveEntries = (newEntries: GratitudeEntry[]) => {
-    localStorage.setItem(`gratitude_entries_${user?.id}`, JSON.stringify(newEntries));
-    setEntries(newEntries);
+  const fetchGratitudeEntries = async () => {
+    if (!user?.id) return;
+    
+    const { data, error } = await supabase
+      .from('gratitude_entries')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching gratitude entries:', error);
+      return;
+    }
+    
+    const formattedEntries: GratitudeEntry[] = data.map((entry: any) => ({
+      id: entry.id,
+      content: entry.entry,
+      category: 'Self', // Default category as it's not stored in DB yet
+      emoji: '', // Not stored in DB yet
+      date: entry.created_at,
+      userId: entry.user_id
+    }));
+    
+    setEntries(formattedEntries);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newEntry.trim()) {
@@ -47,35 +67,46 @@ export const GratitudeJournal: React.FC = () => {
       return;
     }
 
-    if (!selectedCategory) {
+    if (!user?.id) {
       toast({
-        title: "Please select a category",
-        description: "This helps organize your gratitude journey",
+        title: "Please sign in",
+        description: "You need to be signed in to save entries",
         variant: "destructive"
       });
       return;
     }
 
-    const entry: GratitudeEntry = {
-      id: Date.now().toString(),
-      content: newEntry.trim(),
-      category: selectedCategory as any,
-      emoji: selectedEmoji,
-      date: new Date().toISOString(),
-      userId: user?.id || ''
-    };
+    try {
+      const { error } = await supabase
+        .from('gratitude_entries')
+        .insert({
+          user_id: user.id,
+          entry: newEntry.trim()
+        });
 
-    const updatedEntries = [entry, ...entries];
-    saveEntries(updatedEntries);
+      if (error) {
+        throw error;
+      }
 
-    setNewEntry('');
-    setSelectedCategory('');
-    setSelectedEmoji('');
+      // Refresh entries after successful insert
+      await fetchGratitudeEntries();
 
-    toast({
-      title: "Gratitude saved! 🌟",
-      description: "Your beautiful moment has been captured"
-    });
+      setNewEntry('');
+      setSelectedCategory('');
+      setSelectedEmoji('');
+
+      toast({
+        title: "Gratitude saved! 🌟",
+        description: "Your beautiful moment has been captured"
+      });
+    } catch (error) {
+      console.error('Error saving gratitude entry:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save gratitude entry. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const filteredEntries = entries.filter(entry => 

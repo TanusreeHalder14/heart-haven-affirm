@@ -21,23 +21,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         if (session?.user) {
-          // Fetch user profile from our profiles table
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single();
-          
-          if (profile) {
-            setUser({
-              id: profile.user_id,
-              email: profile.email,
-              name: profile.display_name || profile.email
-            });
-          }
+          // Defer profile fetching to avoid authentication deadlock
+          setTimeout(() => {
+            supabase
+              .from('profiles')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .single()
+              .then(({ data: profile }) => {
+                if (profile) {
+                  setUser({
+                    id: profile.user_id,
+                    email: profile.email,
+                    name: profile.display_name || profile.email
+                  });
+                }
+              });
+          }, 0);
         } else {
           setUser(null);
         }

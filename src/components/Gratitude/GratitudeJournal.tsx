@@ -35,7 +35,6 @@ export const GratitudeJournal: React.FC = () => {
     const { data, error } = await supabase
       .from('gratitude_entries')
       .select('*')
-      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -96,8 +95,8 @@ export const GratitudeJournal: React.FC = () => {
       setSelectedEmoji('');
 
       toast({
-        title: "Gratitude saved! 🌟",
-        description: "Your beautiful moment has been captured"
+        title: "Gratitude shared! 🌟",
+        description: "Your gratitude has been shared with the community"
       });
     } catch (error) {
       console.error('Error saving gratitude entry:', error);
@@ -168,30 +167,11 @@ export const GratitudeJournal: React.FC = () => {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Add an emoji (optional)</Label>
-              <div className="flex flex-wrap gap-2">
-                {emojis.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => setSelectedEmoji(selectedEmoji === emoji ? '' : emoji)}
-                    className={`text-2xl p-2 rounded-xl transition-all duration-200 ${
-                      selectedEmoji === emoji
-                        ? 'bg-primary/20 scale-110'
-                        : 'hover:bg-muted hover:scale-105'
-                    }`}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
           <Button type="submit" className="w-full btn-healing text-lg py-4">
             <Heart className="w-5 h-5 mr-2" />
-            Save Gratitude
+            Share Gratitude
           </Button>
         </form>
       </Card>

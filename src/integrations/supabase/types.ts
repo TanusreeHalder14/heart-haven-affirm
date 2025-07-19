@@ -16,31 +16,89 @@ export type Database = {
     Tables: {
       affirmations: {
         Row: {
+          author_name: string | null
           content: string
           created_at: string
           id: string
+          is_anonymous: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
+          author_name?: string | null
           content: string
           created_at?: string
           id?: string
+          is_anonymous?: boolean
           updated_at?: string
           user_id: string
         }
         Update: {
+          author_name?: string | null
           content?: string
           created_at?: string
           id?: string
+          is_anonymous?: boolean
           updated_at?: string
           user_id?: string
         }
         Relationships: []
       }
+      comments: {
+        Row: {
+          affirmation_id: string | null
+          author_name: string | null
+          content: string
+          created_at: string
+          gratitude_id: string | null
+          id: string
+          is_anonymous: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          affirmation_id?: string | null
+          author_name?: string | null
+          content: string
+          created_at?: string
+          gratitude_id?: string | null
+          id?: string
+          is_anonymous?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          affirmation_id?: string | null
+          author_name?: string | null
+          content?: string
+          created_at?: string
+          gratitude_id?: string | null
+          id?: string
+          is_anonymous?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_affirmation_id_fkey"
+            columns: ["affirmation_id"]
+            isOneToOne: false
+            referencedRelation: "affirmations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_gratitude_id_fkey"
+            columns: ["gratitude_id"]
+            isOneToOne: false
+            referencedRelation: "gratitude_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gratitude_entries: {
         Row: {
           author_name: string | null
+          category: string | null
           created_at: string
           entry: string
           id: string
@@ -51,6 +109,7 @@ export type Database = {
         }
         Insert: {
           author_name?: string | null
+          category?: string | null
           created_at?: string
           entry: string
           id?: string
@@ -61,6 +120,7 @@ export type Database = {
         }
         Update: {
           author_name?: string | null
+          category?: string | null
           created_at?: string
           entry?: string
           id?: string

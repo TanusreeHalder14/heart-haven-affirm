@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { GratitudeEntry } from '@/types';
 import { Heart, Plus, Calendar, Tag, Smile, User, UserX, RefreshCw } from 'lucide-react';
+import { Comments } from '@/components/ui/comments';
 
 export const GratitudeJournal: React.FC = () => {
   const [entries, setEntries] = useState<GratitudeEntry[]>([]);
@@ -46,7 +47,7 @@ export const GratitudeJournal: React.FC = () => {
     const formattedEntries: GratitudeEntry[] = data.map((entry: any) => ({
       id: entry.id,
       content: entry.entry,
-      category: 'Self', // Default category
+      category: entry.category || 'Self',
       emoji: '', // Not used in updated version
       date: entry.created_at,
       userId: entry.user_id,
@@ -98,7 +99,8 @@ export const GratitudeJournal: React.FC = () => {
           user_id: user.id,
           entry: newEntry.trim(),
           is_anonymous: isAnonymous,
-          author_name: isAnonymous ? null : user.name
+          author_name: isAnonymous ? null : user.name,
+          category: selectedCategory || 'Self'
         });
 
       if (error) {
@@ -360,6 +362,13 @@ export const GratitudeJournal: React.FC = () => {
                       <span className="text-sm font-medium">{entry.likes}</span>
                     </button>
                   </div>
+                  
+                  {/* Comments Section */}
+                  <Comments 
+                    postId={entry.id} 
+                    postType="gratitude"
+                    onCommentAdded={fetchGratitudeEntries}
+                  />
                 </div>
               </Card>
             ))}

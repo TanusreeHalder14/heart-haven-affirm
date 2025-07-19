@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Affirmation } from '@/types';
 import { Heart, Plus, MessageCircle, RefreshCw, User, UserX } from 'lucide-react';
+import { Comments } from '@/components/ui/comments';
 
 export const CommunityAffirmations: React.FC = () => {
   const [affirmations, setAffirmations] = useState<Affirmation[]>([]);
@@ -83,9 +84,9 @@ export const CommunityAffirmations: React.FC = () => {
     const formattedAffirmations: Affirmation[] = data.map((affirmation: any) => ({
       id: affirmation.id,
       content: affirmation.content,
-      author: 'Community Member', // Simplified for now
-      isAnonymous: true, // Default to anonymous for now
-      likes: 0, // Likes feature can be added later
+      author: affirmation.author_name || 'Community Member',
+      isAnonymous: affirmation.is_anonymous,
+      likes: 0, // Will be updated with real likes data
       date: affirmation.created_at
     }));
     
@@ -118,7 +119,9 @@ export const CommunityAffirmations: React.FC = () => {
         .from('affirmations')
         .insert({
           user_id: user.id,
-          content: newAffirmation.trim()
+          content: newAffirmation.trim(),
+          is_anonymous: isAnonymous,
+          author_name: isAnonymous ? null : user.name
         });
 
       if (error) {
@@ -303,6 +306,13 @@ export const CommunityAffirmations: React.FC = () => {
                       <span className="text-sm font-medium">{affirmation.likes}</span>
                     </button>
                   </div>
+                  
+                  {/* Comments Section */}
+                  <Comments 
+                    postId={affirmation.id} 
+                    postType="affirmation"
+                    onCommentAdded={fetchAffirmations}
+                  />
                 </div>
               </Card>
             ))}

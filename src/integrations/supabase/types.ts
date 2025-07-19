@@ -40,27 +40,65 @@ export type Database = {
       }
       gratitude_entries: {
         Row: {
+          author_name: string | null
           created_at: string
           entry: string
           id: string
+          is_anonymous: boolean
+          likes: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          author_name?: string | null
           created_at?: string
           entry: string
           id?: string
+          is_anonymous?: boolean
+          likes?: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          author_name?: string | null
           created_at?: string
           entry?: string
           id?: string
+          is_anonymous?: boolean
+          likes?: number
           updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      gratitude_likes: {
+        Row: {
+          created_at: string
+          gratitude_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gratitude_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gratitude_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gratitude_likes_gratitude_id_fkey"
+            columns: ["gratitude_id"]
+            isOneToOne: false
+            referencedRelation: "gratitude_entries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mood_entries: {
         Row: {

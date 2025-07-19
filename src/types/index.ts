@@ -11,6 +11,9 @@ export interface GratitudeEntry {
   emoji?: string;
   date: string;
   userId: string;
+  isAnonymous?: boolean;
+  author?: string;
+  likes?: number;
 }
 
 export interface MoodEntry {

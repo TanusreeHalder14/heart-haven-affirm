@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { GratitudeEntry } from '@/types';
-import { Heart, Plus, Calendar, Tag, Smile } from 'lucide-react';
+import { Heart, Plus, Calendar, Tag, Smile, User, UserX, RefreshCw } from 'lucide-react';
 
 export const GratitudeJournal: React.FC = () => {
   const [entries, setEntries] = useState<GratitudeEntry[]>([]);
@@ -17,6 +18,8 @@ export const GratitudeJournal: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedEmoji, setSelectedEmoji] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [likedEntries, setLikedEntries] = useState<Set<string>>(new Set());
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -30,8 +33,6 @@ export const GratitudeJournal: React.FC = () => {
   }, [user?.id]);
 
   const fetchGratitudeEntries = async () => {
-    if (!user?.id) return;
-    
     const { data, error } = await supabase
       .from('gratitude_entries')
       .select('*')
@@ -45,13 +46,28 @@ export const GratitudeJournal: React.FC = () => {
     const formattedEntries: GratitudeEntry[] = data.map((entry: any) => ({
       id: entry.id,
       content: entry.entry,
-      category: 'Self', // Default category as it's not stored in DB yet
-      emoji: '', // Not stored in DB yet
+      category: 'Self', // Default category
+      emoji: '', // Not used in updated version
       date: entry.created_at,
-      userId: entry.user_id
+      userId: entry.user_id,
+      isAnonymous: entry.is_anonymous,
+      author: entry.author_name,
+      likes: entry.likes || 0
     }));
     
     setEntries(formattedEntries);
+    
+    // Fetch user's liked entries
+    if (user?.id) {
+      const { data: likes } = await supabase
+        .from('gratitude_likes')
+        .select('gratitude_id')
+        .eq('user_id', user.id);
+      
+      if (likes) {
+        setLikedEntries(new Set(likes.map(like => like.gratitude_id)));
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,7 +96,9 @@ export const GratitudeJournal: React.FC = () => {
         .from('gratitude_entries')
         .insert({
           user_id: user.id,
-          entry: newEntry.trim()
+          entry: newEntry.trim(),
+          is_anonymous: isAnonymous,
+          author_name: isAnonymous ? null : user.name
         });
 
       if (error) {
@@ -93,6 +111,7 @@ export const GratitudeJournal: React.FC = () => {
       setNewEntry('');
       setSelectedCategory('');
       setSelectedEmoji('');
+      setIsAnonymous(false);
 
       toast({
         title: "Gratitude shared! 🌟",
@@ -108,17 +127,87 @@ export const GratitudeJournal: React.FC = () => {
     }
   };
 
+  const handleLike = async (entryId: string) => {
+    if (!user?.id) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to like entries",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const isLiked = likedEntries.has(entryId);
+    
+    try {
+      if (isLiked) {
+        // Unlike
+        await supabase
+          .from('gratitude_likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('gratitude_id', entryId);
+        
+        const newLiked = new Set(likedEntries);
+        newLiked.delete(entryId);
+        setLikedEntries(newLiked);
+        
+        // Update local state
+        setEntries(prev => prev.map(entry => 
+          entry.id === entryId ? { ...entry, likes: entry.likes - 1 } : entry
+        ));
+      } else {
+        // Like
+        await supabase
+          .from('gratitude_likes')
+          .insert({
+            user_id: user.id,
+            gratitude_id: entryId
+          });
+        
+        const newLiked = new Set(likedEntries);
+        newLiked.add(entryId);
+        setLikedEntries(newLiked);
+        
+        // Update local state
+        setEntries(prev => prev.map(entry => 
+          entry.id === entryId ? { ...entry, likes: entry.likes + 1 } : entry
+        ));
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update like. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const shuffleEntries = () => {
+    const shuffled = [...entries].sort(() => Math.random() - 0.5);
+    setEntries(shuffled);
+    toast({
+      title: "Gratitude refreshed! ✨",
+      description: "Discover new inspiring messages"
+    });
+  };
+
   const filteredEntries = entries.filter(entry => 
     filterCategory === 'all' || entry.category === filterCategory
   );
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 24) {
+      return `${diffInHours}h ago`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays}d ago`;
+    }
   };
 
   return (
@@ -169,30 +258,53 @@ export const GratitudeJournal: React.FC = () => {
 
           </div>
 
-          <Button type="submit" className="w-full btn-healing text-lg py-4">
-            <Heart className="w-5 h-5 mr-2" />
-            Share Gratitude
-          </Button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Switch
+                checked={isAnonymous}
+                onCheckedChange={setIsAnonymous}
+                id="anonymous"
+              />
+              <Label htmlFor="anonymous" className="text-sm cursor-pointer">
+                Post anonymously
+              </Label>
+            </div>
+
+            <Button type="submit" className="btn-healing px-8">
+              <Heart className="w-4 h-4 mr-2" />
+              Share Gratitude
+            </Button>
+          </div>
         </form>
       </Card>
 
       {/* Filter and Entries */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">Your Gratitude Journey</h2>
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-48 rounded-2xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <h2 className="text-2xl font-semibold">Community Gratitude</h2>
+          <div className="flex items-center space-x-4">
+            <Button
+              onClick={shuffleEntries}
+              variant="outline"
+              className="rounded-2xl border-border/50 hover:bg-primary/10"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-48 rounded-2xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {filteredEntries.length === 0 ? (
@@ -207,29 +319,48 @@ export const GratitudeJournal: React.FC = () => {
             </p>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredEntries.map((entry) => (
-              <Card key={entry.id} className="card-gentle slide-up">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      {formatDate(entry.date)}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {entry.emoji && (
-                      <span className="text-xl">{entry.emoji}</span>
-                    )}
-                    <div className="flex items-center space-x-1">
-                      <Tag className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium px-2 py-1 rounded-lg bg-primary/10 text-primary">
-                        {entry.category}
-                      </span>
+              <Card key={entry.id} className="card-gentle group hover:shadow-glow transition-all duration-500">
+                <div className="space-y-4">
+                  <p className="text-foreground leading-relaxed text-lg">
+                    {entry.content}
+                  </p>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                      {entry.isAnonymous ? (
+                        <>
+                          <UserX className="w-4 h-4" />
+                          <span>Anonymous</span>
+                        </>
+                      ) : (
+                        <>
+                          <User className="w-4 h-4" />
+                          <span>{entry.author || 'Community Member'}</span>
+                        </>
+                      )}
+                      <span>•</span>
+                      <span>{formatDate(entry.date)}</span>
                     </div>
+
+                    <button
+                      onClick={() => handleLike(entry.id)}
+                      className={`flex items-center space-x-2 px-3 py-1 rounded-xl transition-all duration-300 ${
+                        likedEntries.has(entry.id)
+                          ? 'bg-primary/20 text-primary'
+                          : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <Heart 
+                        className={`w-4 h-4 ${
+                          likedEntries.has(entry.id) ? 'fill-current' : ''
+                        }`} 
+                      />
+                      <span className="text-sm font-medium">{entry.likes}</span>
+                    </button>
                   </div>
                 </div>
-                <p className="text-foreground leading-relaxed">{entry.content}</p>
               </Card>
             ))}
           </div>

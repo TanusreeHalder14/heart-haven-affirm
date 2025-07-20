@@ -52,8 +52,8 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({ onSectionChange })
     },
     {
       id: 'affirmations',
-      title: 'Read Affirmations',
-      description: 'Find inspiration from the community',
+      title: 'Inner Voice',
+      description: 'Share and read community inner voices',
       icon: MessageCircle,
       color: 'primary',
       gradient: 'gradient-primary'
@@ -81,7 +81,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({ onSectionChange })
           .order('created_at', { ascending: false })
           .limit(3);
 
-        // Fetch recent affirmations
+        // Fetch recent inner voice posts
         const { data: affirmationsData } = await supabase
           .from('affirmations')
           .select('*')
@@ -116,7 +116,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({ onSectionChange })
           ? (weekMoods.reduce((sum, entry) => sum + entry.mood_score, 0) / weekMoods.length).toFixed(1)
           : "0";
 
-        // Count user's affirmations
+        // Count user's inner voice posts
         const { count: affirmationsCount } = await supabase
           .from('affirmations')
           .select('*', { count: 'exact', head: true })
@@ -125,7 +125,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({ onSectionChange })
         setStats([
           { title: "Gratitude Entries", value: gratitudeCount?.toString() || "0", period: "this week" },
           { title: "Mood Average", value: avgMood, period: "this week" },
-          { title: "Affirmations", value: affirmationsCount?.toString() || "0", period: "shared" },
+          { title: "Inner Voice Posts", value: affirmationsCount?.toString() || "0", period: "shared" },
         ]);
 
       } catch (error) {
@@ -140,7 +140,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({ onSectionChange })
     { label: 'Gratitude Entries', value: stats[0]?.value || '0', icon: BookOpen },
     { label: 'Mood Average', value: stats[1]?.value || '0', icon: TrendingUp },
     { label: 'HeartBot Chats', value: '5', icon: Bot },
-    { label: 'Affirmations', value: stats[2]?.value || '0', icon: Heart }
+    { label: 'Inner Voice Posts', value: stats[2]?.value || '0', icon: Heart }
   ];
 
   return (
@@ -206,7 +206,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({ onSectionChange })
 
           {recentEntries.affirmations.length > 0 && (
             <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-2">Latest Affirmation</h4>
+              <h4 className="font-medium text-sm text-muted-foreground mb-2">Latest Inner Voice</h4>
               <div className="text-sm p-3 bg-muted rounded-lg">
                 {recentEntries.affirmations[0].content.substring(0, 100)}...
               </div>

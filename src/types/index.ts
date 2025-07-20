@@ -38,6 +38,7 @@ export interface Affirmation {
   isAnonymous: boolean;
   likes: number;
   date: string;
+  imageUrl?: string;
 }
 
 export interface AuthContextType {

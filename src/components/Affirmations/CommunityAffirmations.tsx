@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Affirmation } from '@/types';
-import { Heart, Plus, MessageCircle, RefreshCw, User, UserX } from 'lucide-react';
+import { Heart, Plus, MessageCircle, RefreshCw, User, UserX, Image, X } from 'lucide-react';
 import { Comments } from '@/components/ui/comments';
 
 export const CommunityAffirmations: React.FC = () => {
@@ -17,6 +17,9 @@ export const CommunityAffirmations: React.FC = () => {
   const [newAffirmation, setNewAffirmation] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [likedAffirmations, setLikedAffirmations] = useState<Set<string>>(new Set());
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [commentCounts, setCommentCounts] = useState<{[key: string]: number}>({});
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -68,6 +71,21 @@ export const CommunityAffirmations: React.FC = () => {
     fetchAffirmations();
   }, []);
 
+  const fetchCommentCounts = async (affirmationIds: string[]) => {
+    const counts: {[key: string]: number} = {};
+    
+    for (const id of affirmationIds) {
+      const { count } = await supabase
+        .from('comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('affirmation_id', id);
+      
+      counts[id] = count || 0;
+    }
+    
+    setCommentCounts(counts);
+  };
+
   const fetchAffirmations = async () => {
     const { data, error } = await supabase
       .from('affirmations')
@@ -87,10 +105,59 @@ export const CommunityAffirmations: React.FC = () => {
       author: affirmation.author_name || 'Community Member',
       isAnonymous: affirmation.is_anonymous,
       likes: 0, // Will be updated with real likes data
-      date: affirmation.created_at
+      date: affirmation.created_at,
+      imageUrl: affirmation.image_url
     }));
     
     setAffirmations(formattedAffirmations);
+    
+    // Fetch comment counts
+    const affirmationIds = formattedAffirmations.map(a => a.id);
+    await fetchCommentCounts(affirmationIds);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onload = (e) => setImagePreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
+  const uploadImage = async (file: File, userId: string): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}/${Date.now()}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from('affirmation-images')
+      .upload(fileName, file);
+    
+    if (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    }
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('affirmation-images')
+      .getPublicUrl(data.path);
+    
+    return publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,8 +165,8 @@ export const CommunityAffirmations: React.FC = () => {
     
     if (!newAffirmation.trim()) {
       toast({
-        title: "Please write an affirmation",
-        description: "Share something positive with the community",
+        title: "Please write your thoughts",
+        description: "Share something with the community",
         variant: "destructive"
       });
       return;
@@ -108,20 +175,36 @@ export const CommunityAffirmations: React.FC = () => {
     if (!user?.id) {
       toast({
         title: "Please sign in",
-        description: "You need to be signed in to share affirmations",
+        description: "You need to be signed in to share your thoughts",
         variant: "destructive"
       });
       return;
     }
 
     try {
+      let imageUrl = null;
+      
+      // Upload image if selected
+      if (selectedImage) {
+        imageUrl = await uploadImage(selectedImage, user.id);
+        if (!imageUrl) {
+          toast({
+            title: "Image upload failed",
+            description: "Please try again or post without image",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from('affirmations')
         .insert({
           user_id: user.id,
           content: newAffirmation.trim(),
           is_anonymous: isAnonymous,
-          author_name: isAnonymous ? null : user.name
+          author_name: isAnonymous ? null : user.name,
+          image_url: imageUrl
         });
 
       if (error) {
@@ -133,16 +216,17 @@ export const CommunityAffirmations: React.FC = () => {
 
       setNewAffirmation('');
       setIsAnonymous(false);
+      removeImage();
 
       toast({
-        title: "Affirmation shared! 🌟",
-        description: "Thank you for spreading positivity"
+        title: "Thoughts shared! 🌟",
+        description: "Thank you for sharing with the community"
       });
     } catch (error) {
-      console.error('Error saving affirmation:', error);
+      console.error('Error saving thoughts:', error);
       toast({
         title: "Error",
-        description: "Failed to share affirmation. Please try again.",
+        description: "Failed to share thoughts. Please try again.",
         variant: "destructive"
       });
     }
@@ -195,9 +279,9 @@ export const CommunityAffirmations: React.FC = () => {
     <div className="p-8 space-y-8 fade-in">
       {/* Header */}
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold text-glow">Community Affirmations</h1>
+        <h1 className="text-4xl font-bold text-glow">Your Thoughts</h1>
         <p className="text-xl text-muted-foreground">
-          Share kindness and find inspiration from our loving community
+          Share your thoughts and connect with our community
         </p>
       </div>
 
@@ -205,21 +289,58 @@ export const CommunityAffirmations: React.FC = () => {
       <Card className="card-floating">
         <h2 className="text-2xl font-semibold mb-6 flex items-center space-x-2">
           <Plus className="w-6 h-6 text-primary" />
-          <span>Share an affirmation</span>
+          <span>Share your thoughts</span>
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="affirmation" className="text-sm font-medium">
-              Write a kind message for someone today
+              What's on your mind?
             </Label>
             <Textarea
               id="affirmation"
               value={newAffirmation}
               onChange={(e) => setNewAffirmation(e.target.value)}
-              placeholder="Share something uplifting, encouraging, or inspiring..."
+              placeholder="Share your thoughts, feelings, or experiences..."
               className="min-h-24 rounded-2xl border-border/50 focus:ring-primary focus:border-primary resize-none"
             />
+          </div>
+
+          {/* Image Upload */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Add an image (optional)</Label>
+            {!imagePreview ? (
+              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <Label htmlFor="image-upload" className="cursor-pointer">
+                  <Image className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Click to add an image</p>
+                </Label>
+              </div>
+            ) : (
+              <div className="relative">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full max-h-64 object-cover rounded-xl"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={removeImage}
+                  className="absolute top-2 right-2"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between">
@@ -236,7 +357,7 @@ export const CommunityAffirmations: React.FC = () => {
 
             <Button type="submit" className="btn-healing px-8">
               <Heart className="w-4 h-4 mr-2" />
-              Share Love
+              Share Thoughts
             </Button>
           </div>
         </form>
@@ -245,7 +366,7 @@ export const CommunityAffirmations: React.FC = () => {
       {/* Affirmations Feed */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">Messages of Love</h2>
+          <h2 className="text-2xl font-semibold">Community Thoughts</h2>
           <Button
             onClick={shuffleAffirmations}
             variant="outline"
@@ -259,9 +380,9 @@ export const CommunityAffirmations: React.FC = () => {
         {affirmations.length === 0 ? (
           <Card className="card-gentle text-center py-12">
             <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No affirmations yet</h3>
+            <h3 className="text-xl font-semibold mb-2">No thoughts yet</h3>
             <p className="text-muted-foreground">
-              Be the first to share a positive message with the community
+              Be the first to share your thoughts with the community
             </p>
           </Card>
         ) : (
@@ -269,6 +390,13 @@ export const CommunityAffirmations: React.FC = () => {
             {affirmations.map((affirmation) => (
               <Card key={affirmation.id} className="card-gentle group hover:shadow-glow transition-all duration-500">
                 <div className="space-y-4">
+                  {affirmation.imageUrl && (
+                    <img
+                      src={affirmation.imageUrl}
+                      alt="Shared image"
+                      className="w-full max-h-64 object-cover rounded-xl"
+                    />
+                  )}
                   <p className="text-foreground leading-relaxed text-lg">
                     {affirmation.content}
                   </p>
@@ -311,6 +439,7 @@ export const CommunityAffirmations: React.FC = () => {
                   <Comments 
                     postId={affirmation.id} 
                     postType="affirmation"
+                    commentCount={commentCounts[affirmation.id] || 0}
                     onCommentAdded={fetchAffirmations}
                   />
                 </div>

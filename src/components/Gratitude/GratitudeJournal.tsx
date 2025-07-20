@@ -21,6 +21,7 @@ export const GratitudeJournal: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [likedEntries, setLikedEntries] = useState<Set<string>>(new Set());
+  const [commentCounts, setCommentCounts] = useState<{[key: string]: number}>({});
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -32,6 +33,21 @@ export const GratitudeJournal: React.FC = () => {
       fetchGratitudeEntries();
     }
   }, [user?.id]);
+
+  const fetchCommentCounts = async (entryIds: string[]) => {
+    const counts: {[key: string]: number} = {};
+    
+    for (const id of entryIds) {
+      const { count } = await supabase
+        .from('comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('gratitude_id', id);
+      
+      counts[id] = count || 0;
+    }
+    
+    setCommentCounts(counts);
+  };
 
   const fetchGratitudeEntries = async () => {
     const { data, error } = await supabase
@@ -57,6 +73,10 @@ export const GratitudeJournal: React.FC = () => {
     }));
     
     setEntries(formattedEntries);
+    
+    // Fetch comment counts
+    const entryIds = formattedEntries.map(e => e.id);
+    await fetchCommentCounts(entryIds);
     
     // Fetch user's liked entries
     if (user?.id) {
@@ -367,6 +387,7 @@ export const GratitudeJournal: React.FC = () => {
                   <Comments 
                     postId={entry.id} 
                     postType="gratitude"
+                    commentCount={commentCounts[entry.id] || 0}
                     onCommentAdded={fetchGratitudeEntries}
                   />
                 </div>

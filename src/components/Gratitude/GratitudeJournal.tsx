@@ -345,20 +345,22 @@ export const GratitudeJournal: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredEntries.map((entry) => (
               <Card key={entry.id} className="card-gentle group hover:shadow-glow transition-all duration-500">
-                <div className="space-y-4 relative">
-                  {/* Delete button in top-right corner */}
+                <div className="space-y-4">
+                  {/* Delete button positioned above content */}
                   {user?.id === entry.userId && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        // Add delete functionality for gratitude entries
-                        console.log('Delete gratitude entry:', entry.id);
-                      }}
-                      className="absolute top-0 right-0 text-destructive hover:text-destructive hover:bg-destructive/10 z-10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex justify-end mb-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          // Add delete functionality for gratitude entries
+                          console.log('Delete gratitude entry:', entry.id);
+                        }}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   )}
                   
                   <p className="text-foreground leading-relaxed text-lg">

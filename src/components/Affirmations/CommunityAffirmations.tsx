@@ -450,7 +450,8 @@ export const CommunityAffirmations: React.FC = () => {
                     </p>
                   
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground flex-shrink-0">
+                      <div className="flex flex-col space-y-1 text-sm text-muted-foreground flex-shrink-0">
+                        <div className="flex items-center space-x-2">
                       {affirmation.isAnonymous ? (
                         <>
                           <UserX className="w-4 h-4" />
@@ -462,8 +463,10 @@ export const CommunityAffirmations: React.FC = () => {
                           <span>{affirmation.author}</span>
                         </>
                       )}
-                      <span>•</span>
+                        </div>
+                        <div>
                       <span>{formatDate(affirmation.date)}</span>
+                        </div>
                       </div>
 
                       <div className="flex items-center space-x-2 flex-shrink-0">

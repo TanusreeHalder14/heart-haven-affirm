@@ -369,7 +369,8 @@ export const GratitudeJournal: React.FC = () => {
                     </p>
                   
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground flex-shrink-0">
+                      <div className="flex flex-col space-y-1 text-sm text-muted-foreground flex-shrink-0">
+                        <div className="flex items-center space-x-2">
                       {entry.isAnonymous ? (
                         <>
                           <UserX className="w-4 h-4" />
@@ -381,8 +382,10 @@ export const GratitudeJournal: React.FC = () => {
                           <span>{entry.author || 'Community Member'}</span>
                         </>
                       )}
-                      <span>•</span>
+                        </div>
+                        <div>
                       <span>{formatDate(entry.date)}</span>
+                        </div>
                       </div>
 
                       <button

@@ -421,7 +421,19 @@ export const CommunityAffirmations: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {affirmations.map((affirmation) => (
               <Card key={affirmation.id} className="card-gentle group hover:shadow-glow transition-all duration-500">
-                <div className="space-y-4">
+                <div className="space-y-4 relative">
+                  {/* Delete button in top-right corner */}
+                  {currentUser && currentUser.id === affirmation.userId && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteAffirmation(affirmation.id)}
+                      className="absolute top-0 right-0 text-destructive hover:text-destructive hover:bg-destructive/10 z-10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                  
                   {affirmation.imageUrl && (
                     <img
                       src={affirmation.imageUrl}
@@ -451,17 +463,6 @@ export const CommunityAffirmations: React.FC = () => {
                     </div>
 
                     <div className="flex items-center space-x-2">
-                      {currentUser && currentUser.id === affirmation.userId && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteAffirmation(affirmation.id)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                      
                       <button
                         onClick={() => handleLike(affirmation.id)}
                         className={`flex items-center space-x-2 px-3 py-1 rounded-xl transition-all duration-300 ${

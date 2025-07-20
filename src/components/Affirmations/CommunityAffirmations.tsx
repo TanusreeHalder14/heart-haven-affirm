@@ -424,12 +424,12 @@ export const CommunityAffirmations: React.FC = () => {
                 <div className="space-y-4">
                   {/* Delete button positioned above content */}
                   {currentUser && currentUser.id === affirmation.userId && (
-                    <div className="flex justify-end mb-2">
+                    <div className="flex justify-end">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => deleteAffirmation(affirmation.id)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 p-2"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -440,15 +440,17 @@ export const CommunityAffirmations: React.FC = () => {
                     <img
                       src={affirmation.imageUrl}
                       alt="Shared image"
-                      className="w-full max-h-64 object-cover rounded-xl"
+                      className="w-full max-h-64 object-cover rounded-xl mb-4"
                     />
                   )}
-                  <p className="text-foreground leading-relaxed text-lg">
-                    {affirmation.content}
-                  </p>
                   
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <div className="space-y-4">
+                    <p className="text-foreground leading-relaxed text-base break-words overflow-wrap-anywhere">
+                    {affirmation.content}
+                    </p>
+                  
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground flex-shrink-0">
                       {affirmation.isAnonymous ? (
                         <>
                           <UserX className="w-4 h-4" />
@@ -462,34 +464,35 @@ export const CommunityAffirmations: React.FC = () => {
                       )}
                       <span>•</span>
                       <span>{formatDate(affirmation.date)}</span>
-                    </div>
+                      </div>
 
-                    <div className="flex items-center space-x-2">
-                      <button
+                      <div className="flex items-center space-x-2 flex-shrink-0">
+                        <button
                         onClick={() => handleLike(affirmation.id)}
-                        className={`flex items-center space-x-2 px-3 py-1 rounded-xl transition-all duration-300 ${
+                          className={`flex items-center space-x-2 px-3 py-2 rounded-xl transition-all duration-300 ${
                           likedAffirmations.has(affirmation.id)
                             ? 'bg-primary/20 text-primary'
                             : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                         }`}
-                      >
+                        >
                         <Heart 
                           className={`w-4 h-4 ${
                             likedAffirmations.has(affirmation.id) ? 'fill-current' : ''
                           }`} 
                         />
                         <span className="text-sm font-medium">{affirmation.likes}</span>
-                      </button>
+                        </button>
+                      </div>
                     </div>
-                  </div>
                   
-                  {/* Comments Section */}
-                  <Comments 
+                    {/* Comments Section */}
+                    <Comments 
                     postId={affirmation.id} 
                     postType="affirmation"
                     commentCount={commentCounts[affirmation.id] || 0}
                     onCommentAdded={fetchAffirmations}
-                  />
+                    />
+                  </div>
                 </div>
               </Card>
             ))}

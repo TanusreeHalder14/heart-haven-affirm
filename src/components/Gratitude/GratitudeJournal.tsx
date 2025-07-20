@@ -348,7 +348,7 @@ export const GratitudeJournal: React.FC = () => {
                 <div className="space-y-4">
                   {/* Delete button positioned above content */}
                   {user?.id === entry.userId && (
-                    <div className="flex justify-end mb-2">
+                    <div className="flex justify-end">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -356,19 +356,20 @@ export const GratitudeJournal: React.FC = () => {
                           // Add delete functionality for gratitude entries
                           console.log('Delete gratitude entry:', entry.id);
                         }}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 p-2"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   )}
                   
-                  <p className="text-foreground leading-relaxed text-lg">
+                  <div className="space-y-4">
+                    <p className="text-foreground leading-relaxed text-base break-words overflow-wrap-anywhere">
                     {entry.content}
-                  </p>
+                    </p>
                   
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground flex-shrink-0">
                       {entry.isAnonymous ? (
                         <>
                           <UserX className="w-4 h-4" />
@@ -382,32 +383,34 @@ export const GratitudeJournal: React.FC = () => {
                       )}
                       <span>•</span>
                       <span>{formatDate(entry.date)}</span>
-                    </div>
+                      </div>
 
-                    <button
+                      <button
                       onClick={() => handleLike(entry.id)}
-                      className={`flex items-center space-x-2 px-3 py-1 rounded-xl transition-all duration-300 ${
+                        className={`flex items-center space-x-2 px-3 py-2 rounded-xl transition-all duration-300 flex-shrink-0 ${
                         likedEntries.has(entry.id)
                           ? 'bg-primary/20 text-primary'
                           : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                       }`}
-                    >
+                      >
                       <Heart 
                         className={`w-4 h-4 ${
                           likedEntries.has(entry.id) ? 'fill-current' : ''
                         }`} 
                       />
                       <span className="text-sm font-medium">{entry.likes}</span>
-                    </button>
+                      </button>
+                    </div>
                   </div>
                   
-                  {/* Comments Section */}
-                  <Comments 
+                  <div className="mt-4">
+                    <Comments 
                     postId={entry.id} 
                     postType="gratitude"
                     commentCount={commentCounts[entry.id] || 0}
                     onCommentAdded={fetchGratitudeEntries}
-                  />
+                    />
+                  </div>
                 </div>
               </Card>
             ))}

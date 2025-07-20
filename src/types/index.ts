@@ -39,6 +39,8 @@ export interface Affirmation {
   likes: number;
   date: string;
   imageUrl?: string;
+  userId?: string;
+  comment_count?: number;
 }
 
 export interface AuthContextType {

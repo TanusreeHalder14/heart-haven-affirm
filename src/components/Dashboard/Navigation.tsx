@@ -16,7 +16,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeSection, onSection
     { id: 'gratitude', label: 'Gratitude Journal', icon: BookOpen },
     { id: 'mood', label: 'Mood Tracker', icon: Smile },
     { id: 'heartbot', label: 'HeartBot', icon: Bot },
-    { id: 'affirmations', label: 'Affirmations', icon: MessageCircle },
+    { id: 'affirmations', label: 'Inner Voice', icon: MessageCircle },
   ];
 
   return (

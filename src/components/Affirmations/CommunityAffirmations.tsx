@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Affirmation } from '@/types';
-import { Heart, Plus, MessageCircle, RefreshCw, User, UserX, Image, X } from 'lucide-react';
+import { Heart, Plus, MessageCircle, RefreshCw, User, UserX, Image, X, Trash2 } from 'lucide-react';
 import { Comments } from '@/components/ui/comments';
 
 export const CommunityAffirmations: React.FC = () => {
@@ -20,6 +20,7 @@ export const CommunityAffirmations: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [commentCounts, setCommentCounts] = useState<{[key: string]: number}>({});
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -69,7 +70,13 @@ export const CommunityAffirmations: React.FC = () => {
 
   useEffect(() => {
     fetchAffirmations();
+    getCurrentUser();
   }, []);
+
+  const getCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUser(user);
+  };
 
   const fetchCommentCounts = async (affirmationIds: string[]) => {
     const counts: {[key: string]: number} = {};
@@ -106,7 +113,8 @@ export const CommunityAffirmations: React.FC = () => {
       isAnonymous: affirmation.is_anonymous,
       likes: 0, // Will be updated with real likes data
       date: affirmation.created_at,
-      imageUrl: affirmation.image_url
+      imageUrl: affirmation.image_url,
+      userId: affirmation.user_id
     }));
     
     setAffirmations(formattedAffirmations);
@@ -165,7 +173,7 @@ export const CommunityAffirmations: React.FC = () => {
     
     if (!newAffirmation.trim()) {
       toast({
-        title: "Please write your thoughts",
+        title: "Please write your inner voice",
         description: "Share something with the community",
         variant: "destructive"
       });
@@ -175,7 +183,7 @@ export const CommunityAffirmations: React.FC = () => {
     if (!user?.id) {
       toast({
         title: "Please sign in",
-        description: "You need to be signed in to share your thoughts",
+        description: "You need to be signed in to share your inner voice",
         variant: "destructive"
       });
       return;
@@ -219,14 +227,14 @@ export const CommunityAffirmations: React.FC = () => {
       removeImage();
 
       toast({
-        title: "Thoughts shared! 🌟",
+        title: "Inner voice shared! 🌟",
         description: "Thank you for sharing with the community"
       });
     } catch (error) {
       console.error('Error saving thoughts:', error);
       toast({
         title: "Error",
-        description: "Failed to share thoughts. Please try again.",
+        description: "Failed to share inner voice. Please try again.",
         variant: "destructive"
       });
     }
@@ -251,6 +259,30 @@ export const CommunityAffirmations: React.FC = () => {
 
     setLikedAffirmations(newLiked);
     setAffirmations(affirmationsCopy);
+  };
+
+  const deleteAffirmation = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("affirmations")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Inner voice deleted",
+        description: "Your post has been removed.",
+      });
+      fetchAffirmations();
+    } catch (error) {
+      console.error("Error deleting affirmation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete your inner voice. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const shuffleAffirmations = () => {
@@ -279,9 +311,9 @@ export const CommunityAffirmations: React.FC = () => {
     <div className="p-8 space-y-8 fade-in">
       {/* Header */}
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold text-glow">Your Thoughts</h1>
+        <h1 className="text-4xl font-bold text-glow">Inner Voice</h1>
         <p className="text-xl text-muted-foreground">
-          Share your thoughts and connect with our community
+          Share your inner voice and connect with our community
         </p>
       </div>
 
@@ -289,7 +321,7 @@ export const CommunityAffirmations: React.FC = () => {
       <Card className="card-floating">
         <h2 className="text-2xl font-semibold mb-6 flex items-center space-x-2">
           <Plus className="w-6 h-6 text-primary" />
-          <span>Share your thoughts</span>
+          <span>Share your inner voice</span>
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -301,7 +333,7 @@ export const CommunityAffirmations: React.FC = () => {
               id="affirmation"
               value={newAffirmation}
               onChange={(e) => setNewAffirmation(e.target.value)}
-              placeholder="Share your thoughts, feelings, or experiences..."
+              placeholder="Share your inner voice, feelings, or experiences..."
               className="min-h-24 rounded-2xl border-border/50 focus:ring-primary focus:border-primary resize-none"
             />
           </div>
@@ -357,7 +389,7 @@ export const CommunityAffirmations: React.FC = () => {
 
             <Button type="submit" className="btn-healing px-8">
               <Heart className="w-4 h-4 mr-2" />
-              Share Thoughts
+              Share Inner Voice
             </Button>
           </div>
         </form>
@@ -366,7 +398,7 @@ export const CommunityAffirmations: React.FC = () => {
       {/* Affirmations Feed */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">Community Thoughts</h2>
+          <h2 className="text-2xl font-semibold">Community Inner Voices</h2>
           <Button
             onClick={shuffleAffirmations}
             variant="outline"
@@ -380,9 +412,9 @@ export const CommunityAffirmations: React.FC = () => {
         {affirmations.length === 0 ? (
           <Card className="card-gentle text-center py-12">
             <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No thoughts yet</h3>
+            <h3 className="text-xl font-semibold mb-2">No inner voices yet</h3>
             <p className="text-muted-foreground">
-              Be the first to share your thoughts with the community
+              Be the first to share your inner voice with the community
             </p>
           </Card>
         ) : (
@@ -418,21 +450,34 @@ export const CommunityAffirmations: React.FC = () => {
                       <span>{formatDate(affirmation.date)}</span>
                     </div>
 
-                    <button
-                      onClick={() => handleLike(affirmation.id)}
-                      className={`flex items-center space-x-2 px-3 py-1 rounded-xl transition-all duration-300 ${
-                        likedAffirmations.has(affirmation.id)
-                          ? 'bg-primary/20 text-primary'
-                          : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <Heart 
-                        className={`w-4 h-4 ${
-                          likedAffirmations.has(affirmation.id) ? 'fill-current' : ''
-                        }`} 
-                      />
-                      <span className="text-sm font-medium">{affirmation.likes}</span>
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      {currentUser && currentUser.id === affirmation.userId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteAffirmation(affirmation.id)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                      
+                      <button
+                        onClick={() => handleLike(affirmation.id)}
+                        className={`flex items-center space-x-2 px-3 py-1 rounded-xl transition-all duration-300 ${
+                          likedAffirmations.has(affirmation.id)
+                            ? 'bg-primary/20 text-primary'
+                            : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Heart 
+                          className={`w-4 h-4 ${
+                            likedAffirmations.has(affirmation.id) ? 'fill-current' : ''
+                          }`} 
+                        />
+                        <span className="text-sm font-medium">{affirmation.likes}</span>
+                      </button>
+                    </div>
                   </div>
                   
                   {/* Comments Section */}

@@ -96,6 +96,13 @@ export type Database = {
             referencedRelation: "gratitude_entries"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_comments_affirmation_id"
+            columns: ["affirmation_id"]
+            isOneToOne: false
+            referencedRelation: "affirmations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       gratitude_entries: {
